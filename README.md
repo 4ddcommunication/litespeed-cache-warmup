@@ -120,6 +120,58 @@ Das Script schreibt den Fortschritt nach `wp-content/cache-warmup-status.json`:
 
 Eine Error-Rate von 5–15% ist bei WooCommerce-Shops normal (Warenkorb, Mein Konto, etc.).
 
+## Wichtig: Prüfen ob Caching überhaupt aktiv ist
+
+Bevor du den Warmup einrichtest, prüfe ob LiteSpeed die Seiten überhaupt cacht. Einige Plugins setzen Cookies oder `Cache-Control: no-cache`-Header, die das Caching **komplett verhindern**:
+
+### Bekannte Problemverursacher
+
+| Plugin | Problem | Lösung |
+|---|---|---|
+| **Quform** | Setzt Session-Cookies auf jeder Seite | Quform nur auf Kontakt-Seite laden (z.B. via Asset CleanUp / Perfmatters) |
+| **Mailchimp for WooCommerce** | Setzt `mailchimp_landing_site`-Cookie | In LiteSpeed Cache → Cache → Ausschlüsse den Cookie ignorieren, oder Plugin nur im Checkout laden |
+| **WooCommerce** | `woocommerce_items_in_cart`-Cookie bei Warenkorb-Aktionen | Normal – nur Warenkorb/Checkout/Mein-Konto sind betroffen |
+| **WPML** | Setzt Sprach-Cookies | LiteSpeed → Cache → „Vary Cookie" korrekt konfigurieren |
+| **Elementor Pro** | Dynamische Widgets können Caching verhindern | Seiten ohne dynamische Widgets cachen normal |
+
+### So prüfst du ob eine Seite gecacht wird
+
+```bash
+curl -s -o /dev/null -D - https://www.deine-domain.de/ | grep -i "x-litespeed-cache"
+```
+
+**Erwartete Ausgabe:**
+```
+x-litespeed-cache: hit       ← Seite kommt aus dem Cache
+x-litespeed-cache: miss      ← Seite wurde gerade in den Cache geladen
+```
+
+**Keine Ausgabe?** → LiteSpeed cacht diese Seite nicht. Ursache prüfen:
+
+```bash
+curl -s -o /dev/null -D - https://www.deine-domain.de/ | grep -i "set-cookie\|cache-control\|x-litespeed"
+```
+
+Wenn du `set-cookie` oder `cache-control: no-cache` siehst, blockiert etwas den Cache. Häufige Lösung: Das verursachende Plugin per **LiteSpeed Cache → Cache → Ausschlüsse** oder per **Asset CleanUp / Perfmatters** nur auf den Seiten laden wo es gebraucht wird.
+
+### Warmup Error-Rate als Indikator
+
+Wenn der Warmup durchgehend **über 20% Errors** zeigt, wird vermutlich ein Plugin das Caching global blockieren. In dem Fall erst das Caching-Problem lösen, dann den Warmup einrichten.
+
+## Wie funktioniert Cache-Purge in LiteSpeed?
+
+Wenn ein Redakteur eine Seite bearbeitet, löscht LiteSpeed **nicht den gesamten Cache**, sondern nur:
+
+- Die bearbeitete Seite selbst
+- Die Startseite
+- Kategorie-/Tag-Archivseiten
+- Autor-Archiv
+- Seiten mit "Neueste Beiträge"-Widget
+
+**Der Rest bleibt gecacht.** Bei 2000 Seiten werden also ~5–10 Seiten gepurged, die restlichen ~1990 bleiben schnell.
+
+**"Purge All" im LiteSpeed-Plugin** oder **Plugin-/Theme-Updates** löschen dagegen den kompletten Cache. Dann greift der Warmup-Cronjob in der nächsten Nacht.
+
 ## LiteSpeed Crawler deaktivieren
 
 Das LiteSpeed Cache Plugin hat einen eingebauten Crawler. Wenn du dieses Script nutzt, **deaktiviere den Plugin-Crawler**, damit sie sich nicht gegenseitig stören:
