@@ -1,18 +1,19 @@
-# LiteSpeed Cache Warmup for Hostinger
+# LiteSpeed Cache Warmup
 
-Bash-Script das alle URLs aus der XML-Sitemap crawlt und den LiteSpeed-Cache vorwärmt. Optimiert für Hostinger Cloud/VPS mit dem 30-Minuten Cron-Timeout.
+Bash-Script + WordPress Dashboard-Plugin das alle URLs aus der XML-Sitemap crawlt und den LiteSpeed-Cache vorwärmt. Funktioniert mit jedem LiteSpeed/OpenLiteSpeed Server (Hostinger, Hetzner, CyberPanel, etc.).
 
 ## Warum?
 
-Nach einem Cache-Purge (Plugin-Update, Deployment, manuelles Leeren) sind alle Seiten uncached. Der erste Besucher bekommt eine langsame, ungecachte Seite. Dieses Script wärmt den Cache nachts vor, sodass morgens alle Seiten schnell laden.
+Nach einem Cache-Purge (Plugin-Update, Deployment, manuelles Leeren) sind alle Seiten uncached. Der erste Besucher bekommt eine langsame, ungecachte Seite. Dieses Script wärmt den Cache vor, sodass alle Seiten schnell laden.
 
 ## Features
 
-- **Parallele Requests** - 5 gleichzeitige Verbindungen (konfigurierbar)
-- **Batch-Verarbeitung** - Status-Updates nach jedem Batch für Live-Monitoring
-- **Status-JSON** - Schreibt Fortschritt als JSON-Datei (für WordPress-Plugins)
-- **Sitemap-Index-Support** - Verarbeitet sowohl Sitemap-Index als auch einzelne Sitemaps
-- **Hostinger-optimiert** - Passt in das 30-Min Cron-Timeout
+- **Parallele Requests** — konfigurierbare gleichzeitige Verbindungen (Default: 5)
+- **Batch-Verarbeitung** — Status-Updates nach jedem Batch für Live-Monitoring
+- **Status-JSON** — Schreibt Fortschritt als JSON-Datei
+- **WordPress Dashboard** — Live-Fortschritt, manueller Start, Log-Viewer direkt im WP-Admin
+- **Sitemap-Index-Support** — Verarbeitet sowohl Sitemap-Index als auch einzelne Sitemaps
+- **Universell** — Funktioniert auf Hostinger, Hetzner, CyberPanel, oder jedem LiteSpeed-Server
 
 ## Voraussetzungen
 
@@ -193,6 +194,51 @@ Für mehrere WordPress-Seiten auf demselben Server einfach mehrere Cronjobs anle
 ```
 0 1 * * * DOMAIN=shop-eins.de bash /home/USER/domains/shop-eins.de/cache-warmup.sh
 0 2 * * * DOMAIN=shop-zwei.de bash /home/USER/domains/shop-zwei.de/cache-warmup.sh
+```
+
+## WordPress Dashboard Plugin
+
+Das Dashboard-Plugin zeigt den Warmup-Status live im WordPress-Backend.
+
+![Cache Warmup Dashboard](https://img.shields.io/badge/WordPress-Dashboard-blue)
+
+### Installation
+
+Kopiere `cache-warmup-dashboard.php` nach `wp-content/mu-plugins/`:
+
+```bash
+cp cache-warmup-dashboard.php /path/to/wp-content/mu-plugins/
+```
+
+Als mu-plugin wird es automatisch aktiviert — kein Plugin-Aktivierung nötig.
+
+### Konfiguration (optional)
+
+In `wp-config.php` können Pfade angepasst werden:
+
+```php
+// Pfad zum Warmup-Script (Default: eine Ebene über WordPress-Root)
+define('CWU_WARMUP_SCRIPT', '/home/example.com/cache-warmup.sh');
+
+// Pfad zur Log-Datei (Default: /var/log/cache-warmup.log)
+define('CWU_LOG_FILE', '/var/log/cache-warmup.log');
+```
+
+Die Status-JSON wird immer aus `wp-content/cache-warmup-status.json` gelesen — das muss zum `STATUS_FILE` im Shell-Script passen.
+
+### Features
+
+- **Live-Fortschrittsbalken** — aktualisiert sich alle 3 Sekunden während des Warmups
+- **Manueller Start** — "Warmup jetzt starten" Button
+- **Statistiken** — Seiten gesamt, Cache Hits, neu gecacht, Fehler, Dauer
+- **Log-Viewer** — letzte 20 Log-Einträge im Terminal-Stil
+
+### Server-Hinweis: /etc/hosts
+
+Wenn der Warmup auf dem gleichen Server läuft der auch die Website hostet, kann DNS-Auflösung langsam sein oder hängen. Füge die Domain in `/etc/hosts` ein:
+
+```bash
+echo '127.0.0.1 www.example.com example.com' >> /etc/hosts
 ```
 
 ## Lizenz
